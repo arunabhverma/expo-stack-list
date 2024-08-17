@@ -1,18 +1,20 @@
-import { StyleSheet, Text, useColorScheme, View } from "react-native";
+import { Platform, StyleSheet, useColorScheme } from "react-native";
 import React from "react";
 import { BlurView } from "expo-blur";
 
 const CustomBlurView = () => {
-  const colorScheme = useColorScheme();
+  const tint = useColorScheme();
   return (
     <BlurView
-      tint={"prominent"}
-      intensity={80}
+      tint={Platform.select({
+        android: tint === "light" ? "default" : "dark",
+        ios: "prominent",
+      })}
+      experimentalBlurMethod={"dimezisBlurView"}
+      intensity={100}
       style={StyleSheet.absoluteFillObject}
     />
   );
 };
 
 export default CustomBlurView;
-
-const styles = StyleSheet.create({});

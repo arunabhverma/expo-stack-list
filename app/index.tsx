@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import {
+  LayoutChangeEvent,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -9,15 +11,19 @@ import {
 import { Image } from "expo-image";
 import Animated, {
   LinearTransition,
+  SharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
   withTiming,
 } from "react-native-reanimated";
+import { useHeaderHeight } from "@react-navigation/elements";
 import { useTheme } from "@react-navigation/native";
 import CustomBlurView from "@/components/CustomBlurView";
 import { GROUP, SubGroupRenderTypes } from "@/types";
 import { DATA } from "@/mock/groupData";
 import { Ionicons } from "@expo/vector-icons";
+import { StatusBar } from "expo-status-bar";
 
 const ITEM_HEIGHT = 80;
 const GAP = 8;
@@ -59,11 +65,20 @@ const SubGroupRender = ({ val, i, isSubGroups }: SubGroupRenderTypes) => {
   );
 };
 
-const RenderItem = ({ item }: { item: GROUP }) => {
+const RenderItem = ({
+  item,
+  index,
+  bottomPadding,
+}: {
+  item: GROUP;
+  index: number;
+  bottomPadding: SharedValue<number>;
+}) => {
   const theme = useTheme();
   const colorScheme = useColorScheme();
 
   const [isSubGroups, setSubGroups] = useState(false);
+  const [extraPadding, setExtraPadding] = useState(0);
 
   const animatedChevronIcon = useAnimatedStyle(() => {
     return {
@@ -73,10 +88,32 @@ const RenderItem = ({ item }: { item: GROUP }) => {
     };
   });
 
+  const onLayout = (event: LayoutChangeEvent) => {
+    const { height } = event.nativeEvent.layout;
+    setExtraPadding(height);
+  };
+
+  const setGroup = () => {
+    if (isSubGroups) {
+      setTimeout(() => {
+        setSubGroups(false);
+      }, 150);
+      bottomPadding.value += extraPadding;
+      setTimeout(() => {
+        bottomPadding.value = withTiming(0, { duration: 800 });
+      }, 200);
+    } else {
+      setSubGroups(true);
+    }
+  };
+
   return (
-    <Animated.View layout={LinearTransition}>
+    <Animated.View
+      layout={LinearTransition.springify()}
+      onLayout={isSubGroups ? onLayout : undefined}
+    >
       <Pressable
-        onPress={() => setSubGroups((prev) => !prev)}
+        onPress={setGroup}
         style={[
           styles.groupListItem,
           {
@@ -130,20 +167,39 @@ const RenderItem = ({ item }: { item: GROUP }) => {
 };
 
 const Main = () => {
+  const bottomPadding = useSharedValue(0);
+  const headerHeight = useHeaderHeight();
+
+  const animatedPadding = useAnimatedStyle(() => {
+    return {
+      paddingBottom: bottomPadding.value,
+    };
+  });
+
   return (
-    <View style={styles.container}>
-      <Animated.FlatList
-        data={DATA}
-        showsVerticalScrollIndicator={false}
-        itemLayoutAnimation={LinearTransition.springify()}
-        contentInsetAdjustmentBehavior="automatic"
-        contentContainerStyle={styles.contentContainer}
-        renderItem={({ item }) => <RenderItem item={item} />}
-        keyExtractor={(val) => val.id}
-      />
+    <View style={[styles.container, { paddingTop: headerHeight }]}>
+      {Platform.OS === "android" && <StatusBar style="light" />}
+      <Animated.ScrollView contentInsetAdjustmentBehavior={"automatic"}>
+        <Animated.View
+          layout={LinearTransition}
+          style={[styles.contentContainer, animatedPadding]}
+        >
+          {DATA.map((item, index) => (
+            <RenderItem
+              key={item.id}
+              item={item}
+              index={index}
+              bottomPadding={bottomPadding}
+            />
+          ))}
+        </Animated.View>
+      </Animated.ScrollView>
       <Image
         source={{
-          uri: "https://www.ytechb.com/wp-content/uploads/2022/09/iPhone-14-Wallpaper-Blue.webp",
+          uri: Platform.select({
+            android: "https://oboi-telefon.ru/wallpapers/82801/37109.jpg",
+            ios: "https://www.ytechb.com/wp-content/uploads/2022/09/iPhone-14-Wallpaper-Blue.webp",
+          }),
         }}
         style={styles.bgImage}
       />
@@ -185,7 +241,6 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-
     elevation: 5,
   },
   title: {
