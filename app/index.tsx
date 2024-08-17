@@ -49,7 +49,6 @@ const SubGroupRender = ({ val, i, isSubGroups }: SubGroupRenderTypes) => {
         animatedSubGroupStyle,
         {
           marginTop: !isSubGroups ? (-ITEM_HEIGHT / 2.4) * (i + 1) : GAP,
-          //   opacity: !isSubGroups ? 1 - 0.3 * i : 1,
           zIndex: -(i + 1),
         },
       ]}
@@ -67,7 +66,6 @@ const SubGroupRender = ({ val, i, isSubGroups }: SubGroupRenderTypes) => {
 
 const RenderItem = ({
   item,
-  index,
   bottomPadding,
 }: {
   item: GROUP;
